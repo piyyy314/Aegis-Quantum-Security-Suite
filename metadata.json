@@ -1,0 +1,6 @@
+{
+  "name": "Aegis Quantum Security Suite",
+  "description": "An advanced full-stack suite for simulating active defenses, Post-Quantum Cryptographic compliance, software bills of materials (C-SBOM), and quantum-inspired tensor network simulations of Gaussian Boson Sampling, backed by an AI PQC audit consultant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
