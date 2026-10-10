@@ -14,17 +14,30 @@ import {
   Network,
   Clock,
   ShieldCheck,
-  AlertTriangle
+  AlertTriangle,
+  Radio,
+  FileCheck2,
+  Gauge,
+  Zap,
+  Flame,
+  Binary
 } from "lucide-react";
 import SocTerminal from "./components/SocTerminal";
 import CryptographicLab from "./components/CryptographicLab";
 import GbsPlayground from "./components/GbsPlayground";
 import GeminiAuditor from "./components/GeminiAuditor";
+import QkdSimulator from "./components/QkdSimulator";
+import HndlMatrix from "./components/HndlMatrix";
+import HybridCertBuilder from "./components/HybridCertBuilder";
+import QrngEntropyLab from "./components/QrngEntropyLab";
+import SideChannelLab from "./components/SideChannelLab";
 import { SbomComponent } from "./types";
 import { motion, AnimatePresence } from "motion/react";
 
+type ActiveTabType = "soc" | "gemini" | "lab" | "qkd" | "hndl" | "hybrid" | "qrng" | "sca" | "gbs";
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"soc" | "lab" | "gbs" | "gemini">("soc");
+  const [activeTab, setActiveTab] = useState<ActiveTabType>("soc");
   const [currentTime, setCurrentTime] = useState<string>("");
 
   // Shared C-SBOM State so that additions/deletions immediately update the Gemini Auditor context!
@@ -66,7 +79,7 @@ export default function App() {
               </span>
             </div>
             <p className="text-[10px] text-slate-500 font-sans font-medium tracking-tight mt-0.5">
-              Decoy Honeypots • ML Network Anomalies • Quantum-Safe Cryptography (Kyber/Dilithium) • Tensor Simulator
+              Decoy Honeypots • PQC ML-KEM/DSA • QKD BB84 • HNDL Mosca • Hybrid TLS 1.3 • QRNG NIST • SCA Side-Channel • Tensor GBS
             </p>
           </div>
         </div>
@@ -80,7 +93,7 @@ export default function App() {
 
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-950/20 border border-emerald-500/20 text-emerald-400">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-semibold tracking-wider font-mono">SYSTEM_OPERATIONAL</span>
+            <span className="text-[10px] font-semibold tracking-wider font-mono">ALL_9_MODULES_ONLINE</span>
           </div>
         </div>
       </header>
@@ -89,69 +102,144 @@ export default function App() {
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         
         {/* Left Sidebar for Desktop */}
-        <aside className="w-64 border-r border-slate-800 bg-[#020617] p-4 flex flex-col shrink-0 hidden md:flex" id="sidebar-nav">
-          <div className="space-y-6">
+        <aside className="w-64 border-r border-slate-800 bg-[#020617] p-4 flex flex-col shrink-0 hidden md:flex overflow-y-auto" id="sidebar-nav">
+          <div className="space-y-5">
+            {/* Group 1: Threat Center & AI */}
             <div>
               <div className="px-3 py-1 text-[10px] text-slate-500 uppercase font-bold tracking-wider font-mono">
-                Security Core
+                Command & AI Defense
               </div>
-              <nav className="mt-2 space-y-1">
+              <nav className="mt-1.5 space-y-1">
                 <button
                   onClick={() => setActiveTab("soc")}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium tracking-tight transition-all text-left ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium tracking-tight transition-all text-left ${
                     activeTab === "soc"
                       ? "bg-slate-900 text-cyan-400 border border-slate-700 shadow-[0_0_12px_rgba(34,211,238,0.1)] font-bold"
                       : "text-slate-400 hover:text-white hover:bg-slate-900/40"
                   }`}
                   id="sidebar-btn-soc"
                 >
-                  <Terminal className="h-4 w-4 shrink-0" />
+                  <Terminal className="h-4 w-4 shrink-0 text-cyan-400" />
                   <span>Command Center (SOC)</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab("gemini")}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium tracking-tight transition-all text-left ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium tracking-tight transition-all text-left ${
                     activeTab === "gemini"
                       ? "bg-slate-900 text-cyan-400 border border-slate-700 shadow-[0_0_12px_rgba(34,211,238,0.1)] font-bold"
                       : "text-slate-400 hover:text-white hover:bg-slate-900/40"
                   }`}
                   id="sidebar-btn-gemini"
                 >
-                  <Sparkles className="h-4 w-4 shrink-0" />
+                  <Sparkles className="h-4 w-4 shrink-0 text-cyan-400" />
                   <span>AI Cryptographic Auditor</span>
                 </button>
               </nav>
             </div>
 
+            {/* Group 2: Post-Quantum Cryptography Suite */}
             <div>
               <div className="px-3 py-1 text-[10px] text-slate-500 uppercase font-bold tracking-wider font-mono">
-                Advanced Labs
+                Post-Quantum Cryptography
               </div>
-              <nav className="mt-2 space-y-1">
+              <nav className="mt-1.5 space-y-1">
                 <button
                   onClick={() => setActiveTab("lab")}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium tracking-tight transition-all text-left ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium tracking-tight transition-all text-left ${
                     activeTab === "lab"
                       ? "bg-slate-900 text-cyan-400 border border-slate-700 shadow-[0_0_12px_rgba(34,211,238,0.1)] font-bold"
                       : "text-slate-400 hover:text-white hover:bg-slate-900/40"
                   }`}
                   id="sidebar-btn-lab"
                 >
-                  <Cpu className="h-4 w-4 shrink-0" />
-                  <span>PQC Keygen & SBOM</span>
+                  <Cpu className="h-4 w-4 shrink-0 text-cyan-400" />
+                  <span>PQC Keygen & C-SBOM</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("qkd")}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium tracking-tight transition-all text-left ${
+                    activeTab === "qkd"
+                      ? "bg-slate-900 text-cyan-400 border border-slate-700 shadow-[0_0_12px_rgba(34,211,238,0.1)] font-bold"
+                      : "text-slate-400 hover:text-white hover:bg-slate-900/40"
+                  }`}
+                  id="sidebar-btn-qkd"
+                >
+                  <Radio className="h-4 w-4 shrink-0 text-cyan-400" />
+                  <span>QKD & BB84 Channel</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("hndl")}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium tracking-tight transition-all text-left ${
+                    activeTab === "hndl"
+                      ? "bg-slate-900 text-amber-400 border border-slate-700 shadow-[0_0_12px_rgba(245,158,11,0.1)] font-bold"
+                      : "text-slate-400 hover:text-white hover:bg-slate-900/40"
+                  }`}
+                  id="sidebar-btn-hndl"
+                >
+                  <Clock className="h-4 w-4 shrink-0 text-amber-400" />
+                  <span>HNDL Threat Radar (Mosca)</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("hybrid")}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium tracking-tight transition-all text-left ${
+                    activeTab === "hybrid"
+                      ? "bg-slate-900 text-indigo-400 border border-slate-700 shadow-[0_0_12px_rgba(99,102,241,0.1)] font-bold"
+                      : "text-slate-400 hover:text-white hover:bg-slate-900/40"
+                  }`}
+                  id="sidebar-btn-hybrid"
+                >
+                  <FileCheck2 className="h-4 w-4 shrink-0 text-indigo-400" />
+                  <span>Hybrid TLS 1.3 / X.509</span>
+                </button>
+              </nav>
+            </div>
+
+            {/* Group 3: Physical & Advanced Quantum Labs */}
+            <div>
+              <div className="px-3 py-1 text-[10px] text-slate-500 uppercase font-bold tracking-wider font-mono">
+                Hardware & Physical Labs
+              </div>
+              <nav className="mt-1.5 space-y-1">
+                <button
+                  onClick={() => setActiveTab("qrng")}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium tracking-tight transition-all text-left ${
+                    activeTab === "qrng"
+                      ? "bg-slate-900 text-emerald-400 border border-slate-700 shadow-[0_0_12px_rgba(16,185,129,0.1)] font-bold"
+                      : "text-slate-400 hover:text-white hover:bg-slate-900/40"
+                  }`}
+                  id="sidebar-btn-qrng"
+                >
+                  <Gauge className="h-4 w-4 shrink-0 text-emerald-400" />
+                  <span>QRNG & NIST SP 800-22</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("sca")}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium tracking-tight transition-all text-left ${
+                    activeTab === "sca"
+                      ? "bg-slate-900 text-rose-400 border border-slate-700 shadow-[0_0_12px_rgba(244,63,94,0.1)] font-bold"
+                      : "text-slate-400 hover:text-white hover:bg-slate-900/40"
+                  }`}
+                  id="sidebar-btn-sca"
+                >
+                  <Zap className="h-4 w-4 shrink-0 text-rose-400" />
+                  <span>Side-Channel & Fault Lab</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab("gbs")}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium tracking-tight transition-all text-left ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium tracking-tight transition-all text-left ${
                     activeTab === "gbs"
                       ? "bg-slate-900 text-cyan-400 border border-slate-700 shadow-[0_0_12px_rgba(34,211,238,0.1)] font-bold"
                       : "text-slate-400 hover:text-white hover:bg-slate-900/40"
                   }`}
                   id="sidebar-btn-gbs"
                 >
-                  <Network className="h-4 w-4 shrink-0" />
+                  <Network className="h-4 w-4 shrink-0 text-cyan-400" />
                   <span>GBS Tensor Simulator</span>
                 </button>
               </nav>
@@ -159,17 +247,19 @@ export default function App() {
           </div>
 
           {/* Threat level widget */}
-          <div className="mt-auto p-4 bg-slate-900/40 rounded-lg border border-slate-800">
-            <p className="text-[10px] text-slate-500 mb-1.5 font-mono tracking-wider font-bold">MONOLITH THREAT INDEX</p>
-            <div className="flex items-center space-x-2">
-              <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-cyan-500 w-[12%] animate-pulse"></div>
+          <div className="mt-auto pt-4">
+            <div className="p-3.5 bg-slate-900/40 rounded-lg border border-slate-800">
+              <p className="text-[10px] text-slate-500 mb-1.5 font-mono tracking-wider font-bold">MONOLITH THREAT INDEX</p>
+              <div className="flex items-center space-x-2">
+                <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-cyan-500 w-[12%] animate-pulse"></div>
+                </div>
+                <span className="text-xs font-mono text-cyan-400 font-bold tracking-wide">SECURE</span>
               </div>
-              <span className="text-xs font-mono text-cyan-400 font-bold tracking-wide">SECURE</span>
-            </div>
-            <div className="text-[9px] text-slate-600 font-mono mt-2 flex justify-between">
-              <span>EDR_ALARM: OK</span>
-              <span>PQC: ACTIVE</span>
+              <div className="text-[9px] text-slate-600 font-mono mt-2 flex justify-between">
+                <span>ACTIVE DEFENSES: 9/9</span>
+                <span>FIPS-203: OK</span>
+              </div>
             </div>
           </div>
         </aside>
@@ -183,10 +273,9 @@ export default function App() {
                 ? "bg-slate-900 text-cyan-400 border border-slate-700 font-bold"
                 : "text-slate-400"
             }`}
-            id="mobile-tab-soc"
           >
             <Terminal className="h-3.5 w-3.5" />
-            SOC Decoy
+            SOC
           </button>
           
           <button
@@ -196,7 +285,6 @@ export default function App() {
                 ? "bg-slate-900 text-cyan-400 border border-slate-700 font-bold"
                 : "text-slate-400"
             }`}
-            id="mobile-tab-gemini"
           >
             <Sparkles className="h-3.5 w-3.5" />
             AI Auditor
@@ -209,10 +297,69 @@ export default function App() {
                 ? "bg-slate-900 text-cyan-400 border border-slate-700 font-bold"
                 : "text-slate-400"
             }`}
-            id="mobile-tab-lab"
           >
             <Cpu className="h-3.5 w-3.5" />
             PQC Lab
+          </button>
+
+          <button
+            onClick={() => setActiveTab("qkd")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium tracking-tight whitespace-nowrap transition-all ${
+              activeTab === "qkd"
+                ? "bg-slate-900 text-cyan-400 border border-slate-700 font-bold"
+                : "text-slate-400"
+            }`}
+          >
+            <Radio className="h-3.5 w-3.5" />
+            QKD
+          </button>
+
+          <button
+            onClick={() => setActiveTab("hndl")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium tracking-tight whitespace-nowrap transition-all ${
+              activeTab === "hndl"
+                ? "bg-slate-900 text-amber-400 border border-slate-700 font-bold"
+                : "text-slate-400"
+            }`}
+          >
+            <Clock className="h-3.5 w-3.5" />
+            HNDL
+          </button>
+
+          <button
+            onClick={() => setActiveTab("hybrid")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium tracking-tight whitespace-nowrap transition-all ${
+              activeTab === "hybrid"
+                ? "bg-slate-900 text-indigo-400 border border-slate-700 font-bold"
+                : "text-slate-400"
+            }`}
+          >
+            <FileCheck2 className="h-3.5 w-3.5" />
+            Hybrid TLS
+          </button>
+
+          <button
+            onClick={() => setActiveTab("qrng")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium tracking-tight whitespace-nowrap transition-all ${
+              activeTab === "qrng"
+                ? "bg-slate-900 text-emerald-400 border border-slate-700 font-bold"
+                : "text-slate-400"
+            }`}
+          >
+            <Gauge className="h-3.5 w-3.5" />
+            QRNG
+          </button>
+
+          <button
+            onClick={() => setActiveTab("sca")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium tracking-tight whitespace-nowrap transition-all ${
+              activeTab === "sca"
+                ? "bg-slate-900 text-rose-400 border border-slate-700 font-bold"
+                : "text-slate-400"
+            }`}
+          >
+            <Zap className="h-3.5 w-3.5" />
+            Side-Channel
           </button>
 
           <button
@@ -222,10 +369,9 @@ export default function App() {
                 ? "bg-slate-900 text-cyan-400 border border-slate-700 font-bold"
                 : "text-slate-400"
             }`}
-            id="mobile-tab-gbs"
           >
             <Network className="h-3.5 w-3.5" />
-            GBS Tensor
+            GBS
           </button>
         </nav>
 
@@ -242,14 +388,19 @@ export default function App() {
               id="rendered-viewport"
             >
               {activeTab === "soc" && <SocTerminal />}
+              {activeTab === "gemini" && <GeminiAuditor sbomContext={sbomComponents} />}
               {activeTab === "lab" && (
                 <CryptographicLab 
                   sbomComponents={sbomComponents} 
                   setSbomComponents={setSbomComponents} 
                 />
               )}
+              {activeTab === "qkd" && <QkdSimulator />}
+              {activeTab === "hndl" && <HndlMatrix />}
+              {activeTab === "hybrid" && <HybridCertBuilder />}
+              {activeTab === "qrng" && <QrngEntropyLab />}
+              {activeTab === "sca" && <SideChannelLab />}
               {activeTab === "gbs" && <GbsPlayground />}
-              {activeTab === "gemini" && <GeminiAuditor sbomContext={sbomComponents} />}
             </motion.div>
           </AnimatePresence>
         </main>
@@ -259,14 +410,15 @@ export default function App() {
       <footer className="border-t border-slate-800 py-3 px-6 text-center text-[10px] font-mono text-slate-600 bg-[#020617]">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
           <span>
-            Aegis Quantum Security Suite v3.2.0 • Licensed for cryptographic research & audits
+            Aegis Quantum Security Suite v3.5.0 • Complete 9-Module Post-Quantum Defense & Cryptographic Research Suite
           </span>
           <span className="text-slate-500 flex items-center gap-1.5 font-bold">
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
-            FIPS-203 COMPLIANT CODESYSTEM
+            FIPS-203, FIPS-204, FIPS-205 & SP 800-22 COMPLIANT
           </span>
         </div>
       </footer>
     </div>
   );
 }
+
