@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import * as d3 from "d3";
 import { 
   Zap, 
   Activity, 
@@ -18,10 +19,18 @@ import {
   Copy, 
   Check,
   Flame,
-  Gauge
+  Gauge,
+  LineChart
 } from "lucide-react";
 import { NistTestResult } from "../types";
 import { motion } from "motion/react";
+
+interface HistorySample {
+  tick: number;
+  shannon: number;
+  minEntropy: number;
+  pValue: number;
+}
 
 export default function QrngEntropyLab() {
   const [sourceType, setSourceType] = useState<"VACUUM_FLUCTUATION" | "PHASE_NOISE" | "PHOTON_ARRIVAL">("VACUUM_FLUCTUATION");
@@ -33,13 +42,28 @@ export default function QrngEntropyLab() {
   // Simulated bit stream (1024 bits)
   const [bitStream, setBitStream] = useState<string>(() => generatePhysicalBits("VACUUM_FLUCTUATION", "SHA3_256", false));
 
+  // Historical entropy trend for real-time D3 line chart
+  const [history, setHistory] = useState<HistorySample[]>(() => {
+    const initialHistory: HistorySample[] = [];
+    for (let i = 1; i <= 10; i++) {
+      initialHistory.push({
+        tick: i,
+        shannon: 0.9992 + (Math.random() * 0.0007 - 0.0003),
+        minEntropy: 0.9880 + (Math.random() * 0.0040 - 0.0020),
+        pValue: 0.8200 + (Math.random() * 0.1200 - 0.0600)
+      });
+    }
+    return initialHistory;
+  });
+
+  const chartSvgRef = useRef<SVGSVGElement | null>(null);
+
   function generatePhysicalBits(
     source: "VACUUM_FLUCTUATION" | "PHASE_NOISE" | "PHOTON_ARRIVAL",
     ext: "RAW_PHYSICAL" | "VON_NEUMANN" | "SHA3_256",
     tampered: boolean
   ): string {
     if (tampered) {
-      // Degraded stuck state: repetitive pattern simulating photodiode saturation or optical cavity freeze
       let stuck = "";
       for (let i = 0; i < 512; i++) {
         stuck += (i % 8 < 6) ? "1" : "0";
@@ -50,13 +74,11 @@ export default function QrngEntropyLab() {
     let bits = "";
     const len = 512;
     for (let i = 0; i < len; i++) {
-      // Quantum random generator with physical noise
       const r = Math.random();
       bits += r > 0.5 ? "1" : "0";
     }
 
     if (ext === "VON_NEUMANN") {
-      // Von Neumann unbiasing pair algorithm
       let unbiased = "";
       for (let i = 0; i < bits.length - 1; i += 2) {
         const pair = bits.substring(i, i + 2);
@@ -68,14 +90,6 @@ export default function QrngEntropyLab() {
 
     return bits;
   }
-
-  const handleResample = () => {
-    setIsSampling(true);
-    setTimeout(() => {
-      setBitStream(generatePhysicalBits(sourceType, extractor, hardwareTampered));
-      setIsSampling(false);
-    }, 250);
-  };
 
   // Run NIST SP 800-22 Statistical Tests on the current bitstream
   const testResults: NistTestResult[] = useMemo(() => {
@@ -120,7 +134,7 @@ export default function QrngEntropyLab() {
     const pApEn = !hardwareTampered ? 0.7789 : 0.0001;
     const passApEn = pApEn >= 0.01;
 
-    // 8. Cumulative Sums (Forward/Backward) Test
+    // 8. Cumulative Sums Test
     const pCusum = !hardwareTampered ? 0.8521 : 0.0002;
     const passCusum = pCusum >= 0.01;
 
@@ -191,6 +205,31 @@ export default function QrngEntropyLab() {
     ];
   }, [bitStream, hardwareTampered]);
 
+  const currentShannon = hardwareTampered ? 0.4820 : 0.9998;
+  const currentMinEntropy = hardwareTampered ? 0.3120 : 0.9892;
+  const currentPValue = testResults[0]?.pValue || 0.85;
+
+  const handleResample = () => {
+    setIsSampling(true);
+    setTimeout(() => {
+      const newBits = generatePhysicalBits(sourceType, extractor, hardwareTampered);
+      setBitStream(newBits);
+      
+      // Add data point to history chart
+      setHistory(prev => {
+        const nextTick = prev.length > 0 ? prev[prev.length - 1].tick + 1 : 1;
+        const shannonVal = hardwareTampered ? 0.482 + (Math.random() * 0.04 - 0.02) : 0.9995 + (Math.random() * 0.0008 - 0.0004);
+        const minVal = hardwareTampered ? 0.312 + (Math.random() * 0.05 - 0.025) : 0.988 + (Math.random() * 0.005 - 0.0025);
+        const pVal = hardwareTampered ? 0.0001 : Math.min(0.99, Math.max(0.1, 0.75 + (Math.random() * 0.2 - 0.1)));
+        
+        const updated = [...prev, { tick: nextTick, shannon: shannonVal, minEntropy: minVal, pValue: pVal }];
+        return updated.slice(-15); // keep last 15 ticks
+      });
+
+      setIsSampling(false);
+    }, 250);
+  };
+
   // Convert bits to hex
   const hexOutput = useMemo(() => {
     let hex = "";
@@ -204,8 +243,8 @@ export default function QrngEntropyLab() {
   }, [bitStream]);
 
   const allPassed = testResults.every(t => t.passed);
-  const shannonEntropy = hardwareTampered ? "0.482 bits/bit" : "0.9998 bits/bit";
-  const minEntropy = hardwareTampered ? "0.312 bits/bit" : "0.9892 bits/bit";
+  const shannonEntropyText = hardwareTampered ? "0.482 bits/bit" : "0.9998 bits/bit";
+  const minEntropyText = hardwareTampered ? "0.312 bits/bit" : "0.9892 bits/bit";
 
   const handleCopyHex = () => {
     navigator.clipboard.writeText(`0x${hexOutput}`);
@@ -222,6 +261,166 @@ export default function QrngEntropyLab() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  // Render Real-Time D3 Line Chart
+  useEffect(() => {
+    if (!chartSvgRef.current || history.length === 0) return;
+
+    const svg = d3.select(chartSvgRef.current);
+    svg.selectAll("*").remove(); // Clear previous drawing
+
+    const width = 680;
+    const height = 220;
+    const margin = { top: 25, right: 30, bottom: 30, left: 45 };
+    const innerWidth = width - margin.left - margin.right;
+    const innerHeight = height - margin.top - margin.bottom;
+
+    const g = svg
+      .attr("viewBox", `0 0 ${width} ${height}`)
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // X scale (tick sample sequence)
+    const xScale = d3
+      .scaleLinear()
+      .domain(d3.extent(history, (d: HistorySample) => d.tick) as [number, number])
+      .range([0, innerWidth]);
+
+    // Y scale (Entropy / p-value from 0.0 to 1.05)
+    const yScale = d3
+      .scaleLinear()
+      .domain([0, 1.05])
+      .range([innerHeight, 0]);
+
+    // Gridlines
+    g.append("g")
+      .attr("class", "grid")
+      .call(
+        d3.axisLeft(yScale)
+          .ticks(5)
+          .tickSize(-innerWidth)
+          .tickFormat(() => "")
+      )
+      .selectAll("line")
+      .attr("stroke", "#1e293b")
+      .attr("stroke-dasharray", "3,3");
+
+    // Line Generators
+    const shannonLine = d3
+      .line<HistorySample>()
+      .x((d) => xScale(d.tick))
+      .y((d) => yScale(d.shannon))
+      .curve(d3.curveMonotoneX);
+
+    const minEntropyLine = d3
+      .line<HistorySample>()
+      .x((d) => xScale(d.tick))
+      .y((d) => yScale(d.minEntropy))
+      .curve(d3.curveMonotoneX);
+
+    const pValueLine = d3
+      .line<HistorySample>()
+      .x((d) => xScale(d.tick))
+      .y((d) => yScale(d.pValue))
+      .curve(d3.curveMonotoneX);
+
+    // Threshold Line at p = 0.01 (NIST SP 800-22 alpha cutoff)
+    g.append("line")
+      .attr("x1", 0)
+      .attr("x2", innerWidth)
+      .attr("y1", yScale(0.01))
+      .attr("y2", yScale(0.01))
+      .attr("stroke", "#ef4444")
+      .attr("stroke-width", 1.5)
+      .attr("stroke-dasharray", "4,4");
+
+    g.append("text")
+      .attr("x", innerWidth - 5)
+      .attr("y", yScale(0.01) - 4)
+      .attr("text-anchor", "end")
+      .attr("fill", "#ef4444")
+      .style("font-size", "8px")
+      .style("font-family", "monospace")
+      .text("NIST Cutoff (α = 0.01)");
+
+    // Draw Shannon Line (Emerald)
+    g.append("path")
+      .datum(history)
+      .attr("fill", "none")
+      .attr("stroke", "#10b981")
+      .attr("stroke-width", 2.5)
+      .attr("d", shannonLine);
+
+    // Draw Min-Entropy Line (Cyan)
+    g.append("path")
+      .datum(history)
+      .attr("fill", "none")
+      .attr("stroke", "#06b6d4")
+      .attr("stroke-width", 2)
+      .attr("stroke-dasharray", "4,2")
+      .attr("d", minEntropyLine);
+
+    // Draw NIST p-value Line (Amber)
+    g.append("path")
+      .datum(history)
+      .attr("fill", "none")
+      .attr("stroke", "#f59e0b")
+      .attr("stroke-width", 1.5)
+      .attr("d", pValueLine);
+
+    // Add Dots for Data Points
+    g.selectAll(".dot-shannon")
+      .data(history)
+      .enter()
+      .append("circle")
+      .attr("cx", (d: HistorySample) => xScale(d.tick))
+      .attr("cy", (d: HistorySample) => yScale(d.shannon))
+      .attr("r", 3)
+      .attr("fill", "#10b981");
+
+    g.selectAll(".dot-pvalue")
+      .data(history)
+      .enter()
+      .append("circle")
+      .attr("cx", (d: HistorySample) => xScale(d.tick))
+      .attr("cy", (d: HistorySample) => yScale(d.pValue))
+      .attr("r", 2.5)
+      .attr("fill", "#f59e0b");
+
+    // Axes
+    const xAxis = d3.axisBottom(xScale).ticks(history.length).tickFormat((d) => `Sample #${d}`);
+    const yAxis = d3.axisLeft(yScale).ticks(5);
+
+    g.append("g")
+      .attr("transform", `translate(0,${innerHeight})`)
+      .call(xAxis)
+      .selectAll("text")
+      .style("fill", "#94a3b8")
+      .style("font-size", "8px")
+      .style("font-family", "monospace");
+
+    g.append("g")
+      .call(yAxis)
+      .selectAll("text")
+      .style("fill", "#94a3b8")
+      .style("font-size", "8px")
+      .style("font-family", "monospace");
+
+    g.selectAll(".domain").attr("stroke", "#334155");
+    g.selectAll(".tick line").attr("stroke", "#334155");
+
+    // Title
+    svg
+      .append("text")
+      .attr("x", margin.left)
+      .attr("y", 15)
+      .attr("fill", "#10b981")
+      .style("font-size", "9px")
+      .style("font-family", "monospace")
+      .style("font-weight", "bold")
+      .text("D3 Real-Time Entropy Distribution & NIST Monobit p-value Telemetry");
+
+  }, [history]);
 
   return (
     <div className="space-y-6" id="qrng-entropy-module">
@@ -250,11 +449,43 @@ export default function QrngEntropyLab() {
           <button
             onClick={handleResample}
             disabled={isSampling}
-            className="flex items-center gap-2 px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] disabled:opacity-50 cursor-pointer"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isSampling ? "animate-spin" : ""}`} />
             <span>Sample Entropy Source</span>
           </button>
+        </div>
+      </div>
+
+      {/* Real-time D3 Line Chart Visualization Section */}
+      <div className="p-5 rounded-lg bg-slate-900/40 border border-slate-800 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2">
+            <LineChart className="h-4 w-4 text-emerald-400" />
+            <h3 className="text-xs font-bold text-white uppercase font-mono tracking-tight">
+              D3 Real-Time Entropy Distribution & NIST p-Value Distribution
+            </h3>
+          </div>
+          
+          {/* Legend */}
+          <div className="flex items-center gap-4 text-[10px] font-mono">
+            <span className="flex items-center gap-1.5 text-emerald-400">
+              <span className="w-2.5 h-0.5 bg-emerald-400 rounded-full" />
+              Shannon Entropy (H)
+            </span>
+            <span className="flex items-center gap-1.5 text-cyan-400">
+              <span className="w-2.5 h-0.5 bg-cyan-400 rounded-full" />
+              Min-Entropy (H_inf)
+            </span>
+            <span className="flex items-center gap-1.5 text-amber-400">
+              <span className="w-2.5 h-0.5 bg-amber-400 rounded-full" />
+              NIST p-Value
+            </span>
+          </div>
+        </div>
+
+        <div className="w-full bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-center items-center overflow-x-auto">
+          <svg ref={chartSvgRef} className="w-full h-auto max-w-[680px] select-none" />
         </div>
       </div>
 
@@ -277,7 +508,8 @@ export default function QrngEntropyLab() {
                 value={sourceType}
                 onChange={(e) => {
                   setSourceType(e.target.value as any);
-                  setBitStream(generatePhysicalBits(e.target.value as any, extractor, hardwareTampered));
+                  const nb = generatePhysicalBits(e.target.value as any, extractor, hardwareTampered);
+                  setBitStream(nb);
                 }}
                 className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-2 text-emerald-300 font-bold focus:border-emerald-500 outline-none"
               >
@@ -293,7 +525,8 @@ export default function QrngEntropyLab() {
                 value={extractor}
                 onChange={(e) => {
                   setExtractor(e.target.value as any);
-                  setBitStream(generatePhysicalBits(sourceType, e.target.value as any, hardwareTampered));
+                  const nb = generatePhysicalBits(sourceType, e.target.value as any, hardwareTampered);
+                  setBitStream(nb);
                 }}
                 className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-2 text-white focus:border-emerald-500 outline-none"
               >
@@ -318,9 +551,20 @@ export default function QrngEntropyLab() {
                   onClick={() => {
                     const next = !hardwareTampered;
                     setHardwareTampered(next);
-                    setBitStream(generatePhysicalBits(sourceType, extractor, next));
+                    const nb = generatePhysicalBits(sourceType, extractor, next);
+                    setBitStream(nb);
+                    // Add tamper event point to line chart history
+                    setHistory(prev => {
+                      const nextTick = prev.length > 0 ? prev[prev.length - 1].tick + 1 : 1;
+                      return [...prev, {
+                        tick: nextTick,
+                        shannon: next ? 0.482 : 0.9998,
+                        minEntropy: next ? 0.312 : 0.9892,
+                        pValue: next ? 0.0001 : 0.8500
+                      }].slice(-15);
+                    });
                   }}
-                  className={`px-2.5 py-1 rounded text-[11px] font-bold font-mono transition-all ${
+                  className={`px-2.5 py-1 rounded text-[11px] font-bold font-mono transition-all cursor-pointer ${
                     hardwareTampered ? "bg-rose-600 text-white" : "bg-slate-800 text-slate-400"
                   }`}
                 >
@@ -346,14 +590,14 @@ export default function QrngEntropyLab() {
               <div className="p-3 rounded bg-slate-950/80 border border-slate-800">
                 <span className="text-[10px] text-slate-500 block">Shannon Entropy H</span>
                 <span className={`text-base font-bold ${hardwareTampered ? "text-rose-400" : "text-emerald-400"}`}>
-                  {shannonEntropy}
+                  {shannonEntropyText}
                 </span>
                 <span className="text-[9px] text-slate-500 block">Ideal: 1.000</span>
               </div>
               <div className="p-3 rounded bg-slate-950/80 border border-slate-800">
                 <span className="text-[10px] text-slate-500 block">Min-Entropy H_inf</span>
                 <span className={`text-base font-bold ${hardwareTampered ? "text-rose-400" : "text-emerald-400"}`}>
-                  {minEntropy}
+                  {minEntropyText}
                 </span>
                 <span className="text-[9px] text-slate-500 block">Threshold: &gt; 0.95</span>
               </div>
@@ -408,14 +652,14 @@ export default function QrngEntropyLab() {
           <div className="flex gap-2">
             <button
               onClick={handleCopyHex}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono transition-all border border-slate-700"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono transition-all border border-slate-700 cursor-pointer"
             >
               {copiedHex ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-cyan-400" />}
               <span>{copiedHex ? "Copied!" : "Copy Hex"}</span>
             </button>
             <button
               onClick={handleDownloadBinary}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded bg-emerald-700 hover:bg-emerald-600 text-slate-950 font-bold text-xs font-mono transition-all"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded bg-emerald-700 hover:bg-emerald-600 text-slate-950 font-bold text-xs font-mono transition-all cursor-pointer"
             >
               <Download className="h-3.5 w-3.5" />
               <span>Download Bits</span>
